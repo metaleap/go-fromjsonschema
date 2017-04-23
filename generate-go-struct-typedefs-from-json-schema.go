@@ -80,7 +80,6 @@ func Generate(goPkgName string, jdefs *JsonDefs) string {
 	writedesc(0, jdefs.Title+"\n\n"+jdefs.Desc+"\n\n"+GoPkgDesc)
 	buf.Writeln("package " + goPkgName)
 	for tname, def := range topleveldefs {
-		wtf = tname == "CompletionsResponse"
 		buf.Writeln("\n\n")
 		strEnumVals(def)
 		writedesc(0, def.Desc)
@@ -102,8 +101,6 @@ func Generate(goPkgName string, jdefs *JsonDefs) string {
 	}
 	return buf.String()
 }
-
-var wtf bool
 
 func unRef(r string) string {
 	return r[len("#/definitions/"):]
