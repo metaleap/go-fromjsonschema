@@ -108,12 +108,12 @@ func unRef(r string) string {
 
 func strEnumVals(d *JsonDef) {
 	if len(d.Type) > 0 && d.Type[0] == "string" {
-		en := d.Enum
+		en := d.Enum_
 		if len(en) == 0 {
-			en = d.Enum_
+			en = d.Enum
 		}
 		if len(en) > 0 {
-			d.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(d.Enum, "`, `") + "`"
+			d.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(en, "`, `") + "`"
 		}
 	}
 }
