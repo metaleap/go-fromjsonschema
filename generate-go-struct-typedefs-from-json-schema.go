@@ -43,17 +43,20 @@ var (
 	}
 )
 
-func Generate(goPkgName string, jsonSchemaDefSrc string) (string, error) {
+func DefsFromJsonSchema(jsonSchemaDefSrc string) (*JsonDefs, error) {
 	for i := ustr.Idx(jsonSchemaDefSrc, "\"type\": \""); i >= 0; i = ustr.Idx(jsonSchemaDefSrc, "\"type\": \"") {
 		j := ustr.Idx(jsonSchemaDefSrc[i+9:], "\"")
 		tname := jsonSchemaDefSrc[i+9:][:j]
 		jsonSchemaDefSrc = jsonSchemaDefSrc[:i] + "\"type\": [\"" + tname + "\"]" + jsonSchemaDefSrc[i+9+j+1:]
 	}
-
 	var jdefs JsonDefs
 	if err := json.Unmarshal([]byte(jsonSchemaDefSrc), &jdefs); err != nil {
-		return "", err
+		return nil, err
 	}
+	return &jdefs, nil
+}
+
+func Generate(goPkgName string, jdefs *JsonDefs) string {
 	topleveldefs := map[string]*JsonDef{}
 	for tname, jdef := range jdefs.Defs {
 		if len(jdef.AllOf) == 0 {
@@ -96,7 +99,7 @@ func Generate(goPkgName string, jsonSchemaDefSrc string) (string, error) {
 			panic(def.Type[0])
 		}
 	}
-	return buf.String(), nil
+	return buf.String()
 }
 
 func unRef(r string) string {
@@ -116,8 +119,8 @@ func strEnumVals(d *JsonDef) {
 }
 
 func structFields(ind int, b *ustr.Buffer, def *JsonDef) {
+	tabchars := tabChars(ind)
 	for fname, fdef := range def.Props {
-		tabchars := strings.Repeat("\t", ind)
 		ftname := typeName(ind, fdef)
 		gtname := strings.Title(fname)
 		if gtname == def.base {
@@ -132,6 +135,10 @@ func structFields(ind int, b *ustr.Buffer, def *JsonDef) {
 		}
 		b.Writeln("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, fname, omitempty)
 	}
+}
+
+func tabChars(n int) string {
+	return strings.Repeat("\t", n)
 }
 
 func typeName(ind int, d *JsonDef) (ftname string) {
@@ -151,7 +158,7 @@ func typeName(ind int, d *JsonDef) (ftname string) {
 				} else {
 					var b ustr.Buffer
 					structFields(ind+1, &b, d)
-					ftname = "struct{\n" + b.String() + "\n" + strings.Repeat("\t", ind) + "}"
+					ftname = "struct{\n" + b.String() + "\n" + tabChars(ind) + "}"
 				}
 			case "array":
 				ftname = "[]" + typeName(ind, d.Items)
@@ -164,7 +171,7 @@ func typeName(ind int, d *JsonDef) (ftname string) {
 }
 
 func writeDesc(ind int, b *ustr.Buffer, desc string) {
-	tabchars := strings.Repeat("\t", ind)
+	tabchars := tabChars(ind)
 	if desclns := ustr.Split(ustr.Trim(desc), "\n"); len(desclns) > 0 {
 		for _, dln := range desclns {
 			b.Writeln("%s// %s", tabchars, dln)
