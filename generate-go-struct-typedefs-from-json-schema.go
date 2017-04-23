@@ -80,6 +80,7 @@ func Generate(goPkgName string, jdefs *JsonDefs) string {
 	writedesc(0, jdefs.Title+"\n\n"+jdefs.Desc+"\n\n"+GoPkgDesc)
 	buf.Writeln("package " + goPkgName)
 	for tname, def := range topleveldefs {
+		wtf = tname == "CompletionsResponse"
 		buf.Writeln("\n\n")
 		strEnumVals(def)
 		writedesc(0, def.Desc)
@@ -101,6 +102,8 @@ func Generate(goPkgName string, jdefs *JsonDefs) string {
 	}
 	return buf.String()
 }
+
+var wtf bool
 
 func unRef(r string) string {
 	return r[len("#/definitions/"):]
@@ -143,27 +146,31 @@ func tabChars(n int) string {
 
 func typeName(ind int, d *JsonDef) (ftname string) {
 	ftname = "interface{}"
-	if len(d.Ref) > 0 {
-		ftname = unRef(d.Ref)
-	} else if len(d.Type) > 1 {
-		d.Desc += "\n\nPOSSIBLE TYPES: `" + ustr.Join(uslice.StrMap(d.Type, func(jtn string) string { return TypeMapping[jtn] }), "`, `") + "`"
-	} else if len(d.Type) > 0 {
-		if tn, ok := TypeMapping[d.Type[0]]; ok {
-			ftname = tn
-		} else {
+	if d != nil {
+		if len(d.Ref) > 0 {
+			ftname = unRef(d.Ref)
+		} else if len(d.Type) > 1 {
+			d.Desc += "\n\nPOSSIBLE TYPES: `" + ustr.Join(uslice.StrMap(d.Type, func(jtn string) string { return TypeMapping[jtn] }), "`, `") + "`"
+		} else if len(d.Type) > 0 {
 			switch d.Type[0] {
 			case "object":
 				if d.Map != nil {
 					ftname = "map[string]" + typeName(ind, d.Map)
-				} else {
+				} else if len(d.Props) > 0 {
 					var b ustr.Buffer
 					structFields(ind+1, &b, d)
 					ftname = "struct{\n" + b.String() + "\n" + tabChars(ind) + "}"
+				} else {
+					panic(d.Desc)
 				}
 			case "array":
 				ftname = "[]" + typeName(ind, d.Items)
 			default:
-				panic(d.Type[0])
+				if tn, ok := TypeMapping[d.Type[0]]; ok {
+					ftname = tn
+				} else {
+					panic(d.Type[0])
+				}
 			}
 		}
 	}
