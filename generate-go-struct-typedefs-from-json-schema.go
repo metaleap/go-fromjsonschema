@@ -1,3 +1,10 @@
+//	Generates Go `struct` type definitions (ready to json.Unmarshal into) from a JSON Schema definition.
+//
+//	Caution: contains a few strategically placed `panic`s for edge cases not-yet-considered/implemented/handled/needed. If it `panic`s for your JSON Schema, report!
+//
+//	- Use it like [this main.go](https://github.com/metaleap/zentient/blob/master/dbg/zentient-debug-protocol-gen/main.go) does..
+//	- ..to turn a JSON Schema [like this](https://github.com/Microsoft/vscode-debugadapter-node/blob/master/debugProtocol.json)..
+//	- ..into a monster `.go` package of `struct` type-defs [like this](https://github.com/metaleap/zentient/blob/master/dbg/proto/proto.go)
 package fromjsd
 
 import (
@@ -8,30 +15,42 @@ import (
 	"github.com/metaleap/go-util-str"
 )
 
-type JsonDefs struct {
-	Schema string              `json:"$schema,omitempty"`
-	Title  string              `json:"title,omitempty"`
-	Desc   string              `json:"description,omitempty"`
-	Type   []string            `json:"type,omitempty"`
-	Defs   map[string]*JsonDef `json:"definitions,omitempty"`
+//	Top-level declarations of a JSON Schema
+type JsonSchema struct {
+	//	Something like `http://json-schema.org/draft-04/schema#`
+	Schema string `json:"$schema,omitempty"`
+
+	Title string `json:"title,omitempty"`
+
+	Desc string `json:"description,omitempty"`
+
+	//	Ignored, assuming `["object"]` (prior to unmarshaling a JSON Schhema, we transform all `\"type\": \"foo\"` into \"type\": [\"foo\"] for now)
+	Type []string `json:"type,omitempty"`
+
+	//	The JSON Schema's type definitions
+	Defs map[string]*JsonDef `json:"definitions,omitempty"`
 }
 
+//	Represents a top-level type definition, or a property definition, a type-reference, an embedded anonymous `struct`/`object` type definition, or an `array`/`map` element type definition..
 type JsonDef struct {
 	base  string
-	Type  []string            `json:"type,omitempty"`                 // top-level defs
-	Desc  string              `json:"description,omitempty"`          // tld
+	Desc  string              `json:"description,omitempty"`          // top-level defs
 	AllOf []*JsonDef          `json:"allOf,omitempty"`                // tld
 	Props map[string]*JsonDef `json:"properties,omitempty"`           // tld
+	Type  []string            `json:"type,omitempty"`                 // tld
 	Req   []string            `json:"required,omitempty"`             // tld
 	Enum  []string            `json:"enum,omitempty"`                 // tld
-	Map   *JsonDef            `json:"additionalProperties,omitempty"` // prop defs
-	Items *JsonDef            `json:"items,omitempty"`                // pd
-	Enum_ []string            `json:"_enum,omitempty"`                // pd
+	Enum_ []string            `json:"_enum,omitempty"`                // prop defs
+	TMap  *JsonDef            `json:"additionalProperties,omitempty"` // pd
+	TArr  *JsonDef            `json:"items,omitempty"`                // pd
 	Ref   string              `json:"$ref,omitempty"`                 // pd or base from allof[0]
 }
 
 var (
-	GoPkgDesc   = "Package codegen'd via github.com/metaleap/go-fromjsonschema"
+	//	Will be appended to the resulting generated package doc-comment summary
+	GoPkgDesc = "Package codegen'd via github.com/metaleap/go-fromjsonschema"
+
+	//	Default JSON-to-Go type mappings, `number` could be tweaked to `float64` depending on the use-case at hand
 	TypeMapping = map[string]string{
 		"boolean": "bool",
 		"number":  "int64",
@@ -43,20 +62,18 @@ var (
 	}
 )
 
-func DefsFromJsonSchema(jsonSchemaDefSrc string) (*JsonDefs, error) {
+//	Obtains from the given JSON Schema source a `*JsonSchema` that can be passed to `Generate`.
+//	`err` is `nil` unless unmarshaling the specified `jsonSchemaDefSrc` failed.
+func DefsFromJsonSchema(jsonSchemaDefSrc string) (*JsonSchema, error) {
 	for i := ustr.Idx(jsonSchemaDefSrc, "\"type\": \""); i >= 0; i = ustr.Idx(jsonSchemaDefSrc, "\"type\": \"") {
 		j := ustr.Idx(jsonSchemaDefSrc[i+9:], "\"")
 		tname := jsonSchemaDefSrc[i+9:][:j]
 		jsonSchemaDefSrc = jsonSchemaDefSrc[:i] + "\"type\": [\"" + tname + "\"]" + jsonSchemaDefSrc[i+9+j+1:]
 	}
-	var jdefs JsonDefs
+	var jdefs JsonSchema
 	if err := json.Unmarshal([]byte(jsonSchemaDefSrc), &jdefs); err != nil {
 		return nil, err
 	}
-	return &jdefs, nil
-}
-
-func Generate(goPkgName string, jdefs *JsonDefs) string {
 	topleveldefs := map[string]*JsonDef{}
 	for tname, jdef := range jdefs.Defs {
 		if len(jdef.AllOf) == 0 {
@@ -72,38 +89,40 @@ func Generate(goPkgName string, jdefs *JsonDefs) string {
 		}
 		topleveldefs[tname] = jdef
 	}
+	jdefs.Defs = topleveldefs
+	return &jdefs, nil
+}
 
+//	Generate a Go package source with type-defs representing the `Defs` in the specified `jsd` (typically obtained via `DefsFromJsonSchema`).
+func Generate(goPkgName string, jsd *JsonSchema) string {
 	var buf ustr.Buffer
 	writedesc := func(ind int, desc string) {
 		writeDesc(ind, &buf, desc)
 	}
-	writedesc(0, jdefs.Title+"\n\n"+jdefs.Desc+"\n\n"+GoPkgDesc)
+	writedesc(0, jsd.Title+"\n\n"+jsd.Desc+"\n\n"+GoPkgDesc)
 	buf.Writeln("package " + goPkgName)
-	for tname, def := range topleveldefs {
+	for tname, def := range jsd.Defs {
 		buf.Writeln("\n\n")
 		strEnumVals(def)
 		writedesc(0, def.Desc)
-		switch def.Type[0] {
-		case "string":
-			buf.Writeln("type %s string ", tname)
-			continue
-		case "object":
+		if def.Type[0] == "object" {
 			buf.Writeln("type %s struct {", tname)
 			if len(def.base) > 0 {
-				writedesc(1, topleveldefs[def.base].Desc)
+				writedesc(1, jsd.Defs[def.base].Desc)
 				buf.Writeln("\t%s", def.base)
 			}
 			structFields(1, &buf, def)
-			buf.Writeln("} // struct %s", tname)
-		default:
-			panic(def.Type[0])
+			buf.Writeln("\n} // struct %s", tname)
+		} else {
+			buf.Writeln("type %s %s", tname, typeName(0, def))
 		}
 	}
 	return buf.String()
 }
 
 func unRef(r string) string {
-	return r[len("#/definitions/"):]
+	const l = 14 // len("#/definitions/")
+	return r[l:]
 }
 
 func strEnumVals(d *JsonDef) {
@@ -121,6 +140,9 @@ func strEnumVals(d *JsonDef) {
 func structFields(ind int, b *ustr.Buffer, def *JsonDef) {
 	tabchars := tabChars(ind)
 	for fname, fdef := range def.Props {
+		if len(fdef.AllOf) > 0 {
+			panic(fname)
+		}
 		ftname := typeName(ind, fdef)
 		gtname := strings.Title(fname)
 		if gtname == def.base {
@@ -147,21 +169,24 @@ func typeName(ind int, d *JsonDef) (ftname string) {
 		if len(d.Ref) > 0 {
 			ftname = unRef(d.Ref)
 		} else if len(d.Type) > 1 {
-			d.Desc += "\n\nPOSSIBLE TYPES: `" + ustr.Join(uslice.StrMap(d.Type, func(jtn string) string { return TypeMapping[jtn] }), "`, `") + "`"
+			d.Desc += "\n\nPOSSIBLE TYPES:"
+			for _, jtn := range d.Type {
+				d.Desc += "\n- `" + TypeMapping[jtn] + "` (if from JSON `" + jtn + "`)"
+			}
 		} else if len(d.Type) > 0 {
 			switch d.Type[0] {
 			case "object":
-				if d.Map != nil {
-					ftname = "map[string]" + typeName(ind, d.Map)
+				if d.TMap != nil {
+					ftname = "map[string]" + typeName(ind, d.TMap)
 				} else if len(d.Props) > 0 {
 					var b ustr.Buffer
 					structFields(ind+1, &b, d)
-					ftname = "struct{\n" + b.String() + "\n" + tabChars(ind) + "}"
+					ftname = "struct {\n" + b.String() + "\n" + tabChars(ind) + "}"
 				} else {
 					panic(d.Desc)
 				}
 			case "array":
-				ftname = "[]" + typeName(ind, d.Items)
+				ftname = "[]" + typeName(ind, d.TArr)
 			default:
 				if tn, ok := TypeMapping[d.Type[0]]; ok {
 					ftname = tn
