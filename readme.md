@@ -1,9 +1,8 @@
 # fromjsd
---
 
     import "github.com/metaleap/go-fromjsonschema"
 
-Generates Go `struct` type definitions (ready to json.Unmarshal into) from a
+Generates Go `struct` (et al) type definitions (ready to `json.Unmarshal` into) from a
 JSON Schema definition.
 
 Caution: contains a few strategically placed `panic`s for edge cases

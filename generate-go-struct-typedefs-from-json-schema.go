@@ -1,4 +1,4 @@
-//	Generates Go `struct` type definitions (ready to json.Unmarshal into) from a JSON Schema definition.
+//	Generates Go `struct` (et al) type definitions (ready to `json.Unmarshal` into) from a JSON Schema definition.
 //
 //	Caution: contains a few strategically placed `panic`s for edge cases not-yet-considered/implemented/handled/needed. If it `panic`s for your JSON Schema, report!
 //
