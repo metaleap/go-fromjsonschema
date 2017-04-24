@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/metaleap/go-util-misc"
 	"github.com/metaleap/go-util-slice"
 	"github.com/metaleap/go-util-str"
 )
@@ -94,13 +95,18 @@ func DefsFromJsonSchema(jsonSchemaDefSrc string) (*JsonSchema, error) {
 }
 
 //	Generate a Go package source with type-defs representing the `Defs` in the specified `jsd` (typically obtained via `DefsFromJsonSchema`).
-func Generate(goPkgName string, jsd *JsonSchema) string {
+func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelperForBaseTypeNames map[string]string) string {
 	var buf ustr.Buffer
 	writedesc := func(ind int, desc string) {
 		writeDesc(ind, &buf, desc)
 	}
 	writedesc(0, jsd.Title+"\n\n"+jsd.Desc+"\n\n"+GoPkgDesc)
 	buf.Writeln("package " + goPkgName)
+	if generateDecodeHelperForBaseTypeNames != nil && len(generateDecodeHelperForBaseTypeNames) > 0 {
+		buf.Writeln("import \"encoding/json\"")
+		buf.Writeln("import \"errors\"")
+		buf.Writeln("import \"strings\"")
+	}
 	for tname, def := range jsd.Defs {
 		buf.Writeln("\n\n")
 		strEnumVals(def)
@@ -117,7 +123,56 @@ func Generate(goPkgName string, jsd *JsonSchema) string {
 			buf.Writeln("type %s %s", tname, typeName(0, def))
 		}
 	}
+	for gdhfbtn, pname := range generateDecodeHelperForBaseTypeNames {
+		generateDecodeHelper(jsd, &buf, gdhfbtn, pname)
+	}
 	return buf.String()
+}
+
+func generateDecodeHelper(jsd *JsonSchema, buf *ustr.Buffer, forBaseTypeName string, byPropName string) {
+	tdefs := []*JsonDef{}
+	pmap := map[string]string{}
+	for tname, tdef := range jsd.Defs {
+		if tdef.base == forBaseTypeName {
+			tdefs = append(tdefs, tdef)
+			if pdef, ok := tdef.Props[byPropName]; pdef == nil || !ok {
+				panic(tname + ".missing:" + byPropName)
+			} else if len(pdef.Type) != 1 {
+				panic(tname + "." + byPropName + " has types: " + ugo.SPr(len(pdef.Type)))
+			} else if pdef.Type[0] != "string" {
+				panic(tname + "." + byPropName + " is " + pdef.Type[0])
+			} else if len(pdef.Enum) != 1 {
+				panic(tname + "." + byPropName + " has " + ugo.SPr(len(pdef.Enum)))
+			} else if ustr.Has(pdef.Enum[0], "\"") {
+				panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
+			} else if _, exists := pmap[pdef.Enum[0]]; exists {
+				panic(tname + "." + byPropName + " would overwrite existing: " + pdef.Enum[0])
+			} else {
+				pmap[pdef.Enum[0]] = tname
+			}
+		}
+	}
+	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `" + forBaseTypeName + "` as follows:")
+	buf.Writeln("// ")
+	for pval, tname := range pmap {
+		buf.Writeln("// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal into a `" + tname + "`")
+	}
+	sl := ugo.SPr(len(byPropName))
+	buf.Writeln(`func TryUnmarshal` + forBaseTypeName + ` (js string) (ptr interface{}, err error) {`)
+	buf.Writeln(`	if len(js)==0 || js[0]!='{' || js[len(js)-1]!='}' { return }`)
+	//	it's only due to buggy syntax-highlighting that all generated := below are all split out into :` + `=
+	buf.Writeln(`	i1 :` + `= strings.Index(js, "\"` + byPropName + `\":\"")  ;  if i1<1 { return }`)
+	buf.Writeln(`	i2 :` + `= strings.Index(js[i1+` + sl + `+4:], "\"")  ;  if i2<1 { return }`)
+	pvalvar := byPropName + `_of_` + forBaseTypeName
+	buf.Writeln(`	jb :` + `= []byte(js)  ;  ` + pvalvar + ` :` + `= js[i1+` + sl + `+4:][:i2]  ;  switch ` + pvalvar + ` {`)
+	for pval, tname := range pmap {
+		buf.Writeln(`	case "` + pval + `": var val ` + tname + `; if err = json.Unmarshal(jb, &val) ; err==nil { ptr = &val }`)
+	}
+	buf.Writeln(`	default: err = errors.New("Encountered unknown JSON value for ` + byPropName + `: " + ` + pvalvar + `)`)
+	buf.Writeln(`	}`)
+	buf.Writeln(`	return`)
+	buf.Writeln(`}`)
+
 }
 
 func unRef(r string) string {
