@@ -119,7 +119,9 @@ func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelpersForBaseTyp
 				writedesc(1, jsd.Defs[def.base].Desc)
 				buf.Writeln("\t%s", def.base)
 			}
-			structFields(1, &buf, def)
+			if def.Props != nil {
+				structFields(1, &buf, def)
+			}
 			buf.Writeln("\n} // struct %s", tname)
 		} else {
 			buf.Writeln("type %s %s", tname, typeName(0, def))
@@ -171,19 +173,19 @@ func generateDecodeHelper(jsd *JsonSchema, buf *ustr.Buffer, forBaseTypeName str
 	buf.Writeln("// \n// In general: the `err` returned may be either `nil`, the above message, or an `encoding/json.Unmarshal()` return value.")
 	buf.Writeln("// `ptr` will be a pointer to the unmarshaled `struct` value if that succeeded, else `nil`.")
 	buf.Writeln("// Both `err` and `ptr` will be `nil` if `js` doesn't: start with `{` and end with `}` and contain `\"" + byPropName + "\":\"` followed by a subsequent `\"`.")
-	sl := ugo.SPr(len(byPropName))
 	buf.Writeln(`func TryUnmarshal` + forBaseTypeName + ` (js string) (ptr interface{}, err error) {`)
 	buf.Writeln(`	if len(js)==0 || js[0]!='{' || js[len(js)-1]!='}' { return }`)
 	//	it's only due to buggy syntax-highlighting that all generated := below are all split out into :` + `=
 	buf.Writeln(`	i1 :` + `= strings.Index(js, "\"` + byPropName + `\":\"")  ;  if i1<1 { return }`)
-	buf.Writeln(`	i2 :` + `= strings.Index(js[i1+` + sl + `+4:], "\"")  ;  if i2<1 { return }`)
+	buf.Writeln(`	subjs :` + `= js[i1+4+` + ugo.SPr(len(byPropName)) + `:]`)
+	buf.Writeln(`	i2 :` + `= strings.Index(subjs, "\"")  ;  if i2<1 { return }`)
 	pvalvar := byPropName + `_of_` + forBaseTypeName
-	buf.Writeln(`	jb :` + `= []byte(js)  ;  ` + pvalvar + ` :` + `= js[i1+` + sl + `+4:][:i2]  ;  switch ` + pvalvar + ` {`)
+	buf.Writeln(`	` + pvalvar + ` :` + `= subjs[:i2]  ;  switch ` + pvalvar + ` {`)
 	for pval, tname := range pmap {
 		if _, ok := all[tname]; ok {
-			buf.Writeln(`	case "` + pval + `": ptr,err = TryUnmarshal` + tname + `(js)`)
+			buf.Writeln(`	case "` + pval + `":  ptr,err = TryUnmarshal` + tname + `(js)`)
 		} else {
-			buf.Writeln(`	case "` + pval + `": var val ` + tname + `; if err = json.Unmarshal(jb, &val) ; err==nil { ptr = &val }`)
+			buf.Writeln(`	case "` + pval + `":  var val ` + tname + `  ;  if err = json.Unmarshal([]byte(js), &val); err==nil { ptr = &val }`)
 		}
 	}
 	buf.Writeln(`	default: err = errors.New("` + badjfielderrmsg + `" + ` + pvalvar + `)`)
@@ -250,7 +252,7 @@ func typeName(ind int, d *JsonDef) (ftname string) {
 			case "object":
 				if d.TMap != nil {
 					ftname = "map[string]" + typeName(ind, d.TMap)
-				} else if len(d.Props) > 0 {
+				} else if d.Props != nil && len(d.Props) > 0 {
 					var b ustr.Buffer
 					structFields(ind+1, &b, d)
 					ftname = "struct {\n" + b.String() + "\n" + tabChars(ind) + "}"
