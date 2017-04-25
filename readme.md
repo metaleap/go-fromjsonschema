@@ -9,9 +9,9 @@ Caution: contains a few strategically placed `panic`s for edge cases
 not-yet-considered/implemented/handled/needed. If it `panic`s for your JSON
 Schema, report!
 
-- Use it like [this main.go](https://github.com/metaleap/zentient/blob/master/dbg/zentient-debug-protocol-gen/main.go) does..
+- Use it like [this main.go](https://github.com/metaleap/zentient/blob/master/zdbg-vsc-proto-gen/main.go) does..
 - ..to turn a JSON Schema [like this](https://github.com/Microsoft/vscode-debugadapter-node/blob/master/debugProtocol.json)..
-- ..into a monster `.go` package of `struct` type-defs [like this](https://github.com/metaleap/zentient/blob/master/dbg/proto/proto.go)
+- ..into a monster `.go` package of `struct` type-defs [like this](https://github.com/metaleap/zentient/blob/master/zdbg-vsc/proto/proto.go)
 
 ## Usage
 
