@@ -100,6 +100,6 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 Generate a Go package source with type-defs representing the `Defs` in `jsd`
 (typically obtained via `NewJsonSchema`).
 
-Arguments beyonds `goPkgName` generate further code beyond the type-defs: these
-may all be niL/zeroed, or if one "sounds like what you need", check the source
+Arguments beyond `goPkgName` generate further code beyond the type-defs: these
+may all be `nil`/zeroed, or if one "sounds like what you need", check the source
 for how they're handled otherwise =)

@@ -3,6 +3,7 @@ package fromjsd
 import (
 	"encoding/json"
 
+	"github.com/metaleap/go-util-slice"
 	"github.com/metaleap/go-util-str"
 )
 
@@ -55,8 +56,8 @@ func NewJsonSchema(jsonSchemaDefSrc string) (*JsonSchema, error) {
 
 //	Generate a Go package source with type-defs representing the `Defs` in `jsd` (typically obtained via `NewJsonSchema`).
 //
-//	Arguments beyonds `goPkgName` generate further code beyond the type-defs: these may all be niL/zeroed, or if one "sounds like what you need", check the source for how they're handled otherwise =)
-func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string) string {
+//	Arguments beyond `goPkgName` generate further code beyond the type-defs: these may all be `nil`/zeroed, or if one "sounds like what you need", check the source for how they're handled otherwise =)
+func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string, generateCtorsForBaseTypes ...string) string {
 	var buf ustr.Buffer
 	writedesc := func(ind int, desc string) {
 		writeDesc(ind, &buf, desc)
@@ -68,24 +69,45 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 		buf.Writeln("import \"errors\"")
 		buf.Writeln("import \"strings\"")
 	}
-	for tname, def := range jsd.Defs {
+	ctorcandidates := map[string][]string{}
+	for tname, tdef := range jsd.Defs {
 		buf.Writeln("\n\n")
-		def.updateDescBasedOnStrEnumVals()
-		writedesc(0, def.Desc)
-		if def.Type[0] == "object" {
+		tdef.updateDescBasedOnStrEnumVals()
+		writedesc(0, tdef.Desc)
+		if tdef.Type[0] == "object" {
 			buf.Writeln("type %s struct {", tname)
-			if len(def.base) > 0 {
-				writedesc(1, jsd.Defs[def.base].Desc)
-				buf.Writeln("\t%s", def.base)
+			if len(tdef.base) > 0 {
+				writedesc(1, jsd.Defs[tdef.base].Desc)
+				buf.Writeln("\t%s", tdef.base)
 			}
-			if def.Props != nil {
-				def.genStructFields(1, &buf)
+			tdef.genStructFields(1, &buf)
+			if uslice.StrHas(generateCtorsForBaseTypes, tdef.base) {
+				for pname, pdef := range tdef.Props {
+					if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
+						ctorcandidates[tname] = append(ctorcandidates[tname], pname)
+					}
+				}
 			}
 			buf.Writeln("\n} // struct %s", tname)
+			if generateDecodeHelpersForBaseTypeNames != nil {
+				buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
+				if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {
+					if bdef.Props != nil {
+						for pname := range tdef.Props {
+							if _, ok := bdef.Props[pname]; ok {
+								buf.Writeln("	me." + tdef.base + "." + bdef.propNameToFieldName(pname) + " = me." + tdef.propNameToFieldName(pname))
+							}
+						}
+					}
+					buf.Writeln("	me." + tdef.base + ".propagateFieldsToBase()")
+				}
+				buf.Writeln("}")
+			}
 		} else {
-			buf.Writeln("type %s %s", tname, def.genTypeName(0))
+			buf.Writeln("type %s %s", tname, tdef.genTypeName(0))
 		}
 	}
+	jsd.generateCtors(&buf, ctorcandidates)
 	if generateDecodeHelpersForBaseTypeNames != nil {
 		for gdhfbtn, pname := range generateDecodeHelpersForBaseTypeNames {
 			jsd.generateDecodeHelper(&buf, gdhfbtn, pname, generateDecodeHelpersForBaseTypeNames)

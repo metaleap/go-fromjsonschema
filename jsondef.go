@@ -39,23 +39,20 @@ func (me *JsonDef) EnsureProps(propNamesAndTypes map[string]string) {
 
 func (me *JsonDef) genStructFields(ind int, b *ustr.Buffer) {
 	tabchars := tabChars(ind)
-	for fname, fdef := range me.Props {
-		if len(fdef.AllOf) > 0 {
-			panic(fname)
+	for pname, pdef := range me.Props {
+		if len(pdef.AllOf) > 0 {
+			panic(pname)
 		}
-		ftname := fdef.genTypeName(ind)
-		gtname := strings.Title(fname)
-		if gtname == me.base {
-			gtname += "_"
-		}
+		ftname := pdef.genTypeName(ind)
+		gtname := me.propNameToFieldName(pname)
 		b.Writeln("")
-		fdef.updateDescBasedOnStrEnumVals()
-		writeDesc(ind, b, fdef.Desc)
+		pdef.updateDescBasedOnStrEnumVals()
+		writeDesc(ind, b, pdef.Desc)
 		omitempty := ",omitempty"
-		if uslice.StrHas(me.Req, fname) {
+		if uslice.StrHas(me.Req, pname) {
 			omitempty = ""
 		}
-		b.Writeln("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, fname, omitempty)
+		b.Writeln("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, pname, omitempty)
 	}
 }
 
@@ -91,6 +88,14 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 				}
 			}
 		}
+	}
+	return
+}
+
+func (me *JsonDef) propNameToFieldName(pname string) (fname string) {
+	fname = strings.Title(pname)
+	if fname == me.base {
+		fname += "_"
 	}
 	return
 }

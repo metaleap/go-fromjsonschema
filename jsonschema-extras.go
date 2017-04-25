@@ -5,6 +5,23 @@ import (
 	"github.com/metaleap/go-util-str"
 )
 
+func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, ctorcandidates map[string][]string) {
+	for tname, pnames := range ctorcandidates {
+		if tdef := jsd.Defs[tname]; tdef != nil && len(pnames) > 0 {
+			buf.Writeln("\n// Returns a new `" + tname + "` with the followings fields set: `" + ustr.Join(pnames, "`, `") + "`")
+			buf.Writeln("func New" + tname + " () *" + tname + " {")
+			buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
+			for _, pname := range pnames {
+				if pdef := tdef.Props[pname]; pdef != nil {
+					buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
+				}
+			}
+			buf.Writeln("	return &new" + tname)
+			buf.Writeln("}")
+		}
+	}
+}
+
 func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName string, byPropName string, all map[string]string) {
 	tdefs := []*JsonDef{}
 	pmap := map[string]string{}
@@ -55,7 +72,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 		if _, ok := all[tname]; ok {
 			buf.Writeln(`	case "` + pval + `":  ptr,err = TryUnmarshal` + tname + `(js)`)
 		} else {
-			buf.Writeln(`	case "` + pval + `":  var val ` + tname + `  ;  if err = json.Unmarshal([]byte(js), &val); err==nil { ptr = &val }`)
+			buf.Writeln(`	case "` + pval + `":  var val ` + tname + `  ;  if err = json.Unmarshal([]byte(js), &val); err==nil { val.propagateFieldsToBase()  ;  ptr = &val }`)
 		}
 	}
 	buf.Writeln(`	default: err = errors.New("` + badjfielderrmsg + `" + ` + pvalvar + `)`)
