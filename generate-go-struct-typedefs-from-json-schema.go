@@ -96,15 +96,15 @@ func DefsFromJsonSchema(jsonSchemaDefSrc string) (*JsonSchema, error) {
 
 //	Generate a Go package source with type-defs representing the `Defs` in the specified `jsd` (typically obtained via `DefsFromJsonSchema`).
 //
-//	`generateDecodeHelperForBaseTypeNames` may be `nil`, or if it sounds like what you need, contain "typename":"fieldname" pairs after having grasped from source how it's used =)
-func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelperForBaseTypeNames map[string]string) string {
+//	`generateDecodeHelpersForBaseTypeNames` may be `nil`, or if it sounds like what you need, contain "typename":"fieldname" pairs after having grasped from source how it's used =)
+func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelpersForBaseTypeNames map[string]string) string {
 	var buf ustr.Buffer
 	writedesc := func(ind int, desc string) {
 		writeDesc(ind, &buf, desc)
 	}
 	writedesc(0, jsd.Title+"\n\n"+jsd.Desc+"\n\n"+GoPkgDesc)
 	buf.Writeln("package " + goPkgName)
-	if generateDecodeHelperForBaseTypeNames != nil && len(generateDecodeHelperForBaseTypeNames) > 0 {
+	if generateDecodeHelpersForBaseTypeNames != nil && len(generateDecodeHelpersForBaseTypeNames) > 0 {
 		buf.Writeln("import \"encoding/json\"")
 		buf.Writeln("import \"errors\"")
 		buf.Writeln("import \"strings\"")
@@ -125,9 +125,9 @@ func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelperForBaseType
 			buf.Writeln("type %s %s", tname, typeName(0, def))
 		}
 	}
-	if generateDecodeHelperForBaseTypeNames != nil {
-		for gdhfbtn, pname := range generateDecodeHelperForBaseTypeNames {
-			generateDecodeHelper(jsd, &buf, gdhfbtn, pname, generateDecodeHelperForBaseTypeNames)
+	if generateDecodeHelpersForBaseTypeNames != nil {
+		for gdhfbtn, pname := range generateDecodeHelpersForBaseTypeNames {
+			generateDecodeHelper(jsd, &buf, gdhfbtn, pname, generateDecodeHelpersForBaseTypeNames)
 		}
 	}
 	return buf.String()
@@ -156,15 +156,21 @@ func generateDecodeHelper(jsd *JsonSchema, buf *ustr.Buffer, forBaseTypeName str
 			}
 		}
 	}
-	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `" + forBaseTypeName + "` as follows:")
+	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `struct` based on `" + forBaseTypeName + "` as follows:")
 	buf.Writeln("// ")
 	for pval, tname := range pmap {
+		buf.Write("// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
 		if _, ok := all[tname]; ok {
-			buf.Writeln("// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal via `TryUnmarshal" + tname + "`")
+			buf.Writeln("via `TryUnmarshal" + tname + "`")
 		} else {
-			buf.Writeln("// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal into a `" + tname + "`")
+			buf.Writeln("into a new `" + tname + "`.")
 		}
 	}
+	badjfielderrmsg := forBaseTypeName + ": encountered unknown JSON value for " + byPropName + ": "
+	buf.Writeln("// Otherwise, `err`'s message will be: `" + badjfielderrmsg + "` followed by the `" + byPropName + "` value encountered.")
+	buf.Writeln("// \n// In general: the `err` returned may be either `nil`, the above message, or an `encoding/json.Unmarshal()` return value.")
+	buf.Writeln("// `ptr` will be a pointer to the unmarshaled `struct` value if that succeeded, else `nil`.")
+	buf.Writeln("// Both `err` and `ptr` will be `nil` if `js` doesn't: start with `{` and end with `}` and contain `\"" + byPropName + "\":\"` followed by a subsequent `\"`.")
 	sl := ugo.SPr(len(byPropName))
 	buf.Writeln(`func TryUnmarshal` + forBaseTypeName + ` (js string) (ptr interface{}, err error) {`)
 	buf.Writeln(`	if len(js)==0 || js[0]!='{' || js[len(js)-1]!='}' { return }`)
@@ -180,11 +186,10 @@ func generateDecodeHelper(jsd *JsonSchema, buf *ustr.Buffer, forBaseTypeName str
 			buf.Writeln(`	case "` + pval + `": var val ` + tname + `; if err = json.Unmarshal(jb, &val) ; err==nil { ptr = &val }`)
 		}
 	}
-	buf.Writeln(`	default: err = errors.New("` + forBaseTypeName + `: encountered unknown JSON value for ` + byPropName + `: " + ` + pvalvar + `)`)
+	buf.Writeln(`	default: err = errors.New("` + badjfielderrmsg + `" + ` + pvalvar + `)`)
 	buf.Writeln(`	}`)
 	buf.Writeln(`	return`)
 	buf.Writeln(`}`)
-
 }
 
 func unRef(r string) string {

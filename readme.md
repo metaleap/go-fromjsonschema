@@ -36,11 +36,12 @@ var (
 #### func  Generate
 
 ```go
-func Generate(goPkgName string, jsd *JsonSchema) string
+func Generate(goPkgName string, jsd *JsonSchema, generateDecodeHelpersForBaseTypeNames map[string]string) string
 ```
 Generate a Go package source with type-defs representing the `Defs` in the
 specified `jsd` (typically obtained via `DefsFromJsonSchema`).
 
+`generateDecodeHelpersForBaseTypeNames` may be `nil` --- or if it "sounds like what you need", may contain "typename":"fieldname" pairs after having grasped from source how it's used =)
 #### type JsonDef
 
 ```go
