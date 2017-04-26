@@ -5,19 +5,45 @@ import (
 	"github.com/metaleap/go-util-str"
 )
 
-func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, ctorcandidates map[string][]string) {
-	for tname, pnames := range ctorcandidates {
-		if tdef := jsd.Defs[tname]; tdef != nil && len(pnames) > 0 {
-			buf.Writeln("\n// Returns a new `" + tname + "` with the followings fields set: `" + ustr.Join(pnames, "`, `") + "`")
-			buf.Writeln("func New" + tname + " () *" + tname + " {")
-			buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
-			for _, pname := range pnames {
-				if pdef := tdef.Props[pname]; pdef != nil {
-					buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
-				}
+func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, ctorcandidates map[string][]string) {
+	for _, btname := range baseTypeNames {
+		buf.Writeln("\nfunc Base" + btname + " (some" + btname + " interface{}) (base" + btname + " *" + btname + ") {")
+		buf.Writeln("	switch me :" + "= some" + btname + ".(type) {")
+		for tname, tdef := range jsd.Defs {
+			if tdef.base == btname {
+				buf.Writeln("	case *" + tname + ": base" + btname + " = &me." + btname)
 			}
-			buf.Writeln("	return &new" + tname)
-			buf.Writeln("}")
+		}
+		buf.Writeln("	}")
+		buf.Writeln("	return")
+		buf.Writeln("}")
+	}
+	for tname, pnames := range ctorcandidates {
+		if tdef := jsd.Defs[tname]; tdef != nil {
+			if len(pnames) > 0 {
+				buf.Writeln("\n// Returns a new `" + tname + "` with the followings fields set: `" + ustr.Join(pnames, "`, `") + "`")
+				buf.Writeln("func New" + tname + " () *" + tname + " {")
+				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
+				for _, pname := range pnames {
+					if pdef := tdef.Props[pname]; pdef != nil {
+						buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
+					} else {
+						for bdef := jsd.Defs[tdef.base]; bdef != nil; bdef = jsd.Defs[bdef.base] {
+							if pdef := bdef.Props[pname]; pdef != nil && len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
+								buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
+							}
+						}
+					}
+				}
+				buf.Writeln("	new" + tname + ".propagateFieldsToBase()")
+				buf.Writeln("	return &new" + tname)
+				buf.Writeln("}")
+			}
+			// for bname, bdef := tdef.base, jsd.Defs[tdef.base]; bdef != nil; bname, bdef = bdef.base, jsd.Defs[bdef.base] {
+			// 	buf.Writeln("func (me *" + tname + ") Base" + bname + " () *" + bname + "{")
+			// 	buf.Writeln("	return &me." + bname)
+			// 	buf.Writeln("}")
+			// }
 		}
 	}
 }
@@ -81,7 +107,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	buf.Writeln(`}`)
 }
 
-func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn string, baseTypeNameOut string) {
+func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn string, baseTypeNameOut string, ctorcandidates map[string][]string) {
 	inouts := map[string]string{}
 	for tnameout, tdefout := range me.Defs {
 		if tdefout.base == baseTypeNameOut {
@@ -95,11 +121,20 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 		buf.Writeln("\n// Called by `Handle" + baseTypeNameIn + "` when unmarshaling `" + tni + "` to populate the given `" + tno + "` that it'll then return a pointer to (or discard and return `nil` in case this handler returns an `error`).")
 		buf.Writeln("var On" + tni + " func(*" + tni + ", *" + tno + ")error")
 	}
-	buf.Writeln("\n// If a type-switch on `in" + baseTypeNameIn + "` succeeds, `out" + baseTypeNameOut + "` points to a `" + baseTypeNameOut + "`-based `struct` value containing the `" + baseTypeNameOut + "` returned by the specified `makeNew" + baseTypeNameOut + "` constructor and further populated by the `OnFoo" + baseTypeNameIn + "` handler corresponding to the concrete type of `in" + baseTypeNameIn + "` (if any). The only `err` returned, if any, is that returned by the specialized `OnFoo" + baseTypeNameIn + "` handler.")
-	buf.Writeln("func Handle" + baseTypeNameIn + " (in" + baseTypeNameIn + " interface{}, makeNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ")" + baseTypeNameOut + ") (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", err error) {")
+	buf.Writeln("\n// If a type-switch on `in" + baseTypeNameIn + "` succeeds, `out" + baseTypeNameOut + "` points to a `" + baseTypeNameOut + "`-based `struct` value containing the `" + baseTypeNameOut + "` initialized by the specified `initNew" + baseTypeNameOut + "` and further populated by the `OnFoo" + baseTypeNameIn + "` handler corresponding to the concrete type of `in" + baseTypeNameIn + "` (if any). The only `err` returned, if any, is that returned by the specialized `OnFoo" + baseTypeNameIn + "` handler.")
+	buf.Writeln("func Handle" + baseTypeNameIn + " (in" + baseTypeNameIn + " interface{}, initNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ", *" + baseTypeNameOut + ")) (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", err error) {")
 	buf.Writeln("	switch input :" + "= in" + baseTypeNameIn + ".(type) {")
 	for tni, tno := range inouts {
-		buf.Writeln("	case *" + tni + ": output :" + "= " + tno + "{ " + baseTypeNameOut + ": makeNew" + baseTypeNameOut + "(&input." + baseTypeNameIn + ") }; base" + baseTypeNameOut + " = &output." + baseTypeNameOut + "; if On" + tni + "!=nil { err = On" + tni + "(input, &output) }; out" + baseTypeNameOut + " = &output")
+		_, isptr := ctorcandidates[tno]
+		buf.Writeln("	case *" + tni + ":")
+		if isptr {
+			buf.Writeln("		o :" + "= New" + tno + "()")
+		} else {
+			buf.Writeln("		o :" + "= &" + tno + "{}")
+		}
+		buf.Writeln("		if initNew" + baseTypeNameOut + "!=nil { initNew" + baseTypeNameOut + "(&input." + baseTypeNameIn + ", &o." + baseTypeNameOut + ")  ;  o.propagateFieldsToBase() }")
+		buf.Writeln("		if On" + tni + "!=nil { err = On" + tni + "(input, o)  ;  o.propagateFieldsToBase() }")
+		buf.Writeln("		out" + baseTypeNameOut + " , base" + baseTypeNameOut + " = o , &o." + baseTypeNameOut + "")
 	}
 	buf.Writeln("	}")
 	buf.Writeln("	return")

@@ -82,14 +82,16 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 			}
 			tdef.genStructFields(1, &buf)
 			if uslice.StrHas(generateCtorsForBaseTypes, tdef.base) {
-				for pname, pdef := range tdef.Props {
-					if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
-						ctorcandidates[tname] = append(ctorcandidates[tname], pname)
+				for td := tdef; td != nil; td = jsd.Defs[td.base] {
+					for pname, pdef := range td.Props {
+						if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 && !uslice.StrHas(ctorcandidates[tname], pname) {
+							ctorcandidates[tname] = append(ctorcandidates[tname], pname)
+						}
 					}
 				}
 			}
 			buf.Writeln("\n} // struct %s", tname)
-			if generateDecodeHelpersForBaseTypeNames != nil {
+			if generateDecodeHelpersForBaseTypeNames != nil || generateHandlinScaffoldsForBaseTypes != nil || len(generateCtorsForBaseTypes) > 0 {
 				buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
 				if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {
 					if bdef.Props != nil {
@@ -107,7 +109,7 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 			buf.Writeln("type %s %s", tname, tdef.genTypeName(0))
 		}
 	}
-	jsd.generateCtors(&buf, ctorcandidates)
+	jsd.generateCtors(&buf, generateCtorsForBaseTypes, ctorcandidates)
 	if generateDecodeHelpersForBaseTypeNames != nil {
 		for gdhfbtn, pname := range generateDecodeHelpersForBaseTypeNames {
 			jsd.generateDecodeHelper(&buf, gdhfbtn, pname, generateDecodeHelpersForBaseTypeNames)
@@ -115,7 +117,7 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 	}
 	if generateHandlinScaffoldsForBaseTypes != nil {
 		for btnamein, btnameout := range generateHandlinScaffoldsForBaseTypes {
-			jsd.generateHandlingScaffold(&buf, btnamein, btnameout)
+			jsd.generateHandlingScaffold(&buf, btnamein, btnameout, ctorcandidates)
 		}
 	}
 	return buf.String()

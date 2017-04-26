@@ -64,7 +64,7 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 		} else if len(me.Type) > 1 {
 			me.Desc += "\n\nPOSSIBLE TYPES:"
 			for _, jtn := range me.Type {
-				me.Desc += "\n- `" + TypeMapping[jtn] + "` (if from JSON `" + jtn + "`)"
+				me.Desc += "\n- `" + TypeMapping[jtn] + "` (for JSON `" + jtn + "`s)"
 			}
 		} else if len(me.Type) > 0 {
 			switch me.Type[0] {
