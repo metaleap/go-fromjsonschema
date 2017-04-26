@@ -42,11 +42,6 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, c
 				buf.Writeln("	return &new" + tname)
 				buf.Writeln("}")
 			}
-			// for bname, bdef := tdef.base, jsd.Defs[tdef.base]; bdef != nil; bname, bdef = bdef.base, jsd.Defs[bdef.base] {
-			// 	buf.Writeln("func (me *" + tname + ") Base" + bname + " () *" + bname + "{")
-			// 	buf.Writeln("	return &me." + bname)
-			// 	buf.Writeln("}")
-			// }
 		}
 	}
 }
