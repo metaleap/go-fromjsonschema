@@ -145,7 +145,7 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string) {
 	for _, pname := range pnames {
 		for tname, tdef := range me.Defs {
-			if pdef := tdef.Props[pname]; pdef != nil && tdef.BaseTypeName() == fromBaseTypeName {
+			if pdef := tdef.Props[pname]; pdef != nil && tdef.base == fromBaseTypeName {
 				tnalt := strings.TrimSuffix(tname, fromBaseTypeName) + toBaseTypeName
 				if tdalt := me.Defs[tnalt]; tdalt != nil {
 					pcopy := *pdef

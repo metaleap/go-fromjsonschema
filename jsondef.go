@@ -22,10 +22,6 @@ type JsonDef struct {
 	Ref   string              `json:"$ref,omitempty"`                 // pd or base from allof[0]
 }
 
-func (me *JsonDef) BaseTypeName() string {
-	return me.base
-}
-
 func (me *JsonDef) EnsureProps(propNamesAndTypes map[string]string) {
 	if me.Props == nil {
 		// me.Props = map[string]*JsonDef{}
