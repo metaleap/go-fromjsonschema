@@ -72,9 +72,8 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 		}
 	}
 	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `struct` based on `" + forBaseTypeName + "` as follows:")
-	buf.Writeln("// ")
 	for pval, tname := range pmap {
-		buf.Write("// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
+		buf.Write("//\n// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
 		if _, ok := all[tname]; ok {
 			buf.Writeln("via `TryUnmarshal" + tname + "`")
 		} else {
