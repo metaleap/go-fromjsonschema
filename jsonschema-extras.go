@@ -1,6 +1,8 @@
 package fromjsd
 
 import (
+	"strings"
+
 	"github.com/metaleap/go-util-misc"
 	"github.com/metaleap/go-util-str"
 )
@@ -54,20 +56,20 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	for tname, tdef := range jsd.Defs {
 		if tdef.base == forBaseTypeName {
 			tdefs = append(tdefs, tdef)
-			if pdef, ok := tdef.Props[byPropName]; pdef == nil || !ok {
-				panic(tname + ".missing:" + byPropName)
-			} else if len(pdef.Type) != 1 {
-				panic(tname + "." + byPropName + " has types: " + ugo.SPr(len(pdef.Type)))
-			} else if pdef.Type[0] != "string" {
-				panic(tname + "." + byPropName + " is " + pdef.Type[0])
-			} else if len(pdef.Enum) != 1 {
-				panic(tname + "." + byPropName + " has " + ugo.SPr(len(pdef.Enum)))
-			} else if ustr.Has(pdef.Enum[0], "\"") {
-				panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
-			} else if _, exists := pmap[pdef.Enum[0]]; exists {
-				panic(tname + "." + byPropName + " would overwrite existing: " + pdef.Enum[0])
-			} else {
-				pmap[pdef.Enum[0]] = tname
+			if pdef, ok := tdef.Props[byPropName]; ok && pdef != nil {
+				if len(pdef.Type) != 1 {
+					panic(tname + "." + byPropName + " has types: " + ugo.SPr(len(pdef.Type)))
+				} else if pdef.Type[0] != "string" {
+					panic(tname + "." + byPropName + " is " + pdef.Type[0])
+				} else if len(pdef.Enum) != 1 {
+					panic(tname + "." + byPropName + " has " + ugo.SPr(len(pdef.Enum)))
+				} else if ustr.Has(pdef.Enum[0], "\"") {
+					panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
+				} else if _, exists := pmap[pdef.Enum[0]]; exists {
+					panic(tname + "." + byPropName + " would overwrite existing: " + pdef.Enum[0])
+				} else {
+					pmap[pdef.Enum[0]] = tname
+				}
 			}
 		}
 	}
@@ -138,4 +140,22 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 	buf.Writeln("	}")
 	buf.Writeln("	return")
 	buf.Writeln("}")
+}
+
+func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string) {
+	for _, pname := range pnames {
+		for tname, tdef := range me.Defs {
+			if pdef := tdef.Props[pname]; pdef != nil && tdef.BaseTypeName() == fromBaseTypeName {
+				tnalt := strings.TrimSuffix(tname, fromBaseTypeName) + toBaseTypeName
+				if tdalt := me.Defs[tnalt]; tdalt != nil {
+					pcopy := *pdef
+					if tdalt.Props != nil {
+						tdalt.Props[pname] = &pcopy
+					} else {
+						tdalt.Props = map[string]*JsonDef{pname: &pcopy}
+					}
+				}
+			}
+		}
+	}
 }
