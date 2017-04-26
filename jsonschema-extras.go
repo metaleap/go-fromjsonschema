@@ -117,7 +117,7 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 		}
 	}
 	for tni, tno := range inouts {
-		buf.Writeln("\n// Called by `Handle" + baseTypeNameIn + "` (after it unmarshaled the given `" + tni + "`) to further populate the given `" + tno + "` before returning to its caller a pointer to it (in addition to this handler's returned `error`, if any).")
+		buf.Writeln("\n// Called by `Handle" + baseTypeNameIn + "` (after it unmarshaled the given `" + tni + "`) to further populate the given `" + tno + "` before returning it to its caller (in addition to this handler's returned `error`).")
 		buf.Writeln("var On" + tni + " func(*" + tni + ", *" + tno + ")error")
 	}
 	buf.Writeln("\n// If a type-switch on `in" + baseTypeNameIn + "` succeeds, `out" + baseTypeNameOut + "` points to a `" + baseTypeNameOut + "`-based `struct` value containing the `" + baseTypeNameOut + "` initialized by the specified `initNew" + baseTypeNameOut + "` and further populated by the `OnFoo" + baseTypeNameIn + "` handler corresponding to the concrete type of `in" + baseTypeNameIn + "` (if any). The only `err` returned, if any, is that returned by the specialized `OnFoo" + baseTypeNameIn + "` handler.")
