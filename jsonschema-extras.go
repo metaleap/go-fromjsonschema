@@ -73,7 +73,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	}
 	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `struct` based on `" + forBaseTypeName + "` as follows:")
 	for pval, tname := range pmap {
-		buf.Write("//\n// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
+		buf.Write("// \n// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
 		if _, ok := all[tname]; ok {
 			buf.Writeln("via `TryUnmarshal" + tname + "`")
 		} else {
@@ -81,7 +81,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 		}
 	}
 	badjfielderrmsg := forBaseTypeName + ": encountered unknown JSON value for " + byPropName + ": "
-	buf.Writeln("// Otherwise, `err`'s message will be: `" + badjfielderrmsg + "` followed by the `" + byPropName + "` value encountered.")
+	buf.Writeln("// \n// Otherwise, `err`'s message will be: `" + badjfielderrmsg + "` followed by the `" + byPropName + "` value encountered.")
 	buf.Writeln("// \n// In general: the `err` returned may be either `nil`, the above message, or an `encoding/json.Unmarshal()` return value.")
 	buf.Writeln("// `ptr` will be a pointer to the unmarshaled `struct` value if that succeeded, else `nil`.")
 	buf.Writeln("// Both `err` and `ptr` will be `nil` if `js` doesn't: start with `{` and end with `}` and contain `\"" + byPropName + "\":\"` followed by a subsequent `\"`.")
