@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/metaleap/go-util-misc"
+	"github.com/metaleap/go-util-slice"
 	"github.com/metaleap/go-util-str"
 )
 
@@ -23,7 +24,7 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, c
 	for tname, pnames := range ctorcandidates {
 		if tdef := jsd.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
-				buf.Writeln("\n// Returns a new `" + tname + "` with the followings fields set: `" + ustr.Join(pnames, "`, `") + "`")
+				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + ustr.Join(uslice.StrMap(pnames, tdef.propNameToFieldName), "`, `") + "`")
 				buf.Writeln("func New" + tname + " () *" + tname + " {")
 				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
 				for _, pname := range pnames {
