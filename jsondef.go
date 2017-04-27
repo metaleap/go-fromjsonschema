@@ -69,14 +69,14 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 		} else if len(me.Type) > 0 {
 			switch me.Type[0] {
 			case "object":
-				if me.TMap != nil {
-					ftname = "map[string]" + me.TMap.genTypeName(ind)
-				} else if me.Props != nil && len(me.Props) > 0 {
+				if me.Props != nil && len(me.Props) > 0 {
 					var b ustr.Buffer
 					me.genStructFields(ind+1, &b)
 					ftname = "struct {\n" + b.String() + "\n" + tabChars(ind) + "}"
+				} else if me.TMap != nil {
+					ftname = "map[string]" + me.TMap.genTypeName(ind)
 				} else {
-					panic(me.Desc)
+					ftname = TypeMapping["object"]
 				}
 			case "array":
 				ftname = "[]" + me.TArr.genTypeName(ind)

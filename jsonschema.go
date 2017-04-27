@@ -76,7 +76,11 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 		writedesc(0, tdef.Desc)
 		if tdef.Type[0] == "object" {
 			if tdef.Props == nil || len(tdef.Props) == 0 {
-				buf.Writeln("type %s map[string]interface{}", tname)
+				if tdef.TMap != nil {
+					buf.Writeln("type %s map[string]%s", tname, tdef.TMap.genTypeName(0))
+				} else {
+					buf.Writeln("type %s %s", tname, TypeMapping["object"])
+				}
 			} else {
 				buf.Writeln("type %s struct {", tname)
 				if len(tdef.base) > 0 {
