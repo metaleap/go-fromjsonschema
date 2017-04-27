@@ -75,35 +75,39 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 		tdef.updateDescBasedOnStrEnumVals()
 		writedesc(0, tdef.Desc)
 		if tdef.Type[0] == "object" {
-			buf.Writeln("type %s struct {", tname)
-			if len(tdef.base) > 0 {
-				writedesc(1, jsd.Defs[tdef.base].Desc)
-				buf.Writeln("\t%s", tdef.base)
-			}
-			tdef.genStructFields(1, &buf)
-			if uslice.StrHas(generateCtorsForBaseTypes, tdef.base) {
-				for td := tdef; td != nil; td = jsd.Defs[td.base] {
-					for pname, pdef := range td.Props {
-						if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 && !uslice.StrHas(ctorcandidates[tname], pname) {
-							ctorcandidates[tname] = append(ctorcandidates[tname], pname)
-						}
-					}
+			if tdef.Props == nil || len(tdef.Props) == 0 {
+				buf.Writeln("type %s map[string]interface{}", tname)
+			} else {
+				buf.Writeln("type %s struct {", tname)
+				if len(tdef.base) > 0 {
+					writedesc(1, jsd.Defs[tdef.base].Desc)
+					buf.Writeln("\t%s", tdef.base)
 				}
-			}
-			buf.Writeln("\n} // struct %s", tname)
-			if generateDecodeHelpersForBaseTypeNames != nil || generateHandlinScaffoldsForBaseTypes != nil || len(generateCtorsForBaseTypes) > 0 {
-				buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
-				if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {
-					if bdef.Props != nil {
-						for pname := range tdef.Props {
-							if _, ok := bdef.Props[pname]; ok {
-								buf.Writeln("	me." + tdef.base + "." + bdef.propNameToFieldName(pname) + " = me." + tdef.propNameToFieldName(pname))
+				tdef.genStructFields(1, &buf)
+				if uslice.StrHas(generateCtorsForBaseTypes, tdef.base) {
+					for td := tdef; td != nil; td = jsd.Defs[td.base] {
+						for pname, pdef := range td.Props {
+							if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 && !uslice.StrHas(ctorcandidates[tname], pname) {
+								ctorcandidates[tname] = append(ctorcandidates[tname], pname)
 							}
 						}
 					}
-					buf.Writeln("	me." + tdef.base + ".propagateFieldsToBase()")
 				}
-				buf.Writeln("}")
+				buf.Writeln("\n} // struct %s", tname)
+				if generateDecodeHelpersForBaseTypeNames != nil || generateHandlinScaffoldsForBaseTypes != nil || len(generateCtorsForBaseTypes) > 0 {
+					buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
+					if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {
+						if bdef.Props != nil {
+							for pname := range tdef.Props {
+								if _, ok := bdef.Props[pname]; ok {
+									buf.Writeln("	me." + tdef.base + "." + bdef.propNameToFieldName(pname) + " = me." + tdef.propNameToFieldName(pname))
+								}
+							}
+						}
+						buf.Writeln("	me." + tdef.base + ".propagateFieldsToBase()")
+					}
+					buf.Writeln("}")
+				}
 			}
 		} else {
 			buf.Writeln("type %s %s", tname, tdef.genTypeName(0))
