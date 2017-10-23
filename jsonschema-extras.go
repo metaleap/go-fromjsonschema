@@ -3,9 +3,9 @@ package fromjsd
 import (
 	"strings"
 
-	"github.com/metaleap/go-util-misc"
-	"github.com/metaleap/go-util-slice"
-	"github.com/metaleap/go-util-str"
+	"github.com/metaleap/go-util"
+	"github.com/metaleap/go-util/slice"
+	"github.com/metaleap/go-util/str"
 )
 
 func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, ctorcandidates map[string][]string) {
@@ -54,11 +54,11 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 			tdefs = append(tdefs, tdef)
 			if pdef, ok := tdef.Props[byPropName]; ok && pdef != nil {
 				if len(pdef.Type) != 1 {
-					panic(tname + "." + byPropName + " has types: " + ugo.SPr(len(pdef.Type)))
+					panic(tname + "." + byPropName + " has types: " + umisc.Str(len(pdef.Type)))
 				} else if pdef.Type[0] != "string" {
 					panic(tname + "." + byPropName + " is " + pdef.Type[0])
 				} else if len(pdef.Enum) != 1 {
-					panic(tname + "." + byPropName + " has " + ugo.SPr(len(pdef.Enum)))
+					panic(tname + "." + byPropName + " has " + umisc.Str(len(pdef.Enum)))
 				} else if ustr.Has(pdef.Enum[0], "\"") {
 					panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
 				} else if _, exists := pmap[pdef.Enum[0]]; exists {
@@ -87,7 +87,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	buf.Writeln(`	if len(js)==0 || js[0]!='{' || js[len(js)-1]!='}' { return }`)
 	//	it's only due to buggy syntax-highlighting that all generated := below are all split out into :` + `=
 	buf.Writeln(`	i1 :` + `= strings.Index(js, "\"` + byPropName + `\":\"")  ;  if i1<1 { return }`)
-	buf.Writeln(`	subjs :` + `= js[i1+4+` + ugo.SPr(len(byPropName)) + `:]`)
+	buf.Writeln(`	subjs :` + `= js[i1+4+` + umisc.Str(len(byPropName)) + `:]`)
 	buf.Writeln(`	i2 :` + `= strings.Index(subjs, "\"")  ;  if i2<1 { return }`)
 	pvalvar := byPropName + `_of_` + forBaseTypeName
 	buf.Writeln(`	` + pvalvar + ` :` + `= subjs[:i2]  ;  switch ` + pvalvar + ` {`)
