@@ -97,7 +97,7 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 						}
 					}
 				}
-				buf.Writeln("\n} // struct %s", tname)
+				buf.Writeln("\n} // struct %s\n", tname)
 				if generateDecodeHelpersForBaseTypeNames != nil || generateHandlinScaffoldsForBaseTypes != nil || len(generateCtorsForBaseTypes) > 0 {
 					buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
 					if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {

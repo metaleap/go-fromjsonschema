@@ -25,7 +25,7 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, c
 		if tdef := jsd.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
 				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + ustr.Join(uslice.StrMap(pnames, tdef.propNameToFieldName), "`, `") + "`")
-				buf.Writeln("func New" + tname + " () *" + tname + " {")
+				buf.Writeln("func New" + tname + "() *" + tname + " {")
 				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
 				for _, pname := range pnames {
 					if pdef := tdef.Props[pname]; pdef != nil {
@@ -119,7 +119,7 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 		buf.Writeln("var On" + tni + " func(*" + tni + ", *" + tno + ")error")
 	}
 	buf.Writeln("\n// If a type-switch on `in" + baseTypeNameIn + "` succeeds, `out" + baseTypeNameOut + "` points to a `" + baseTypeNameOut + "`-based `struct` value containing the `" + baseTypeNameOut + "` initialized by the specified `initNew" + baseTypeNameOut + "` and further populated by the `OnFoo" + baseTypeNameIn + "` handler corresponding to the concrete type of `in" + baseTypeNameIn + "` (if any). The only `err` returned, if any, is that returned by the specialized `OnFoo" + baseTypeNameIn + "` handler.")
-	buf.Writeln("func Handle" + baseTypeNameIn + " (in" + baseTypeNameIn + " interface{}, initNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ", *" + baseTypeNameOut + ")) (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", err error) {")
+	buf.Writeln("func Handle" + baseTypeNameIn + "(in" + baseTypeNameIn + " interface{}, initNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ", *" + baseTypeNameOut + ")) (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", err error) {")
 	buf.Writeln("	switch input :" + "= in" + baseTypeNameIn + ".(type) {")
 	for tni, tno := range inouts {
 		_, isptr := ctorcandidates[tno]
