@@ -119,7 +119,7 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 		buf.Writeln("var On" + tni + " func(*" + tni + ", *" + tno + ")error")
 	}
 	buf.Writeln("\n// If a type-switch on `in" + baseTypeNameIn + "` succeeds, `out" + baseTypeNameOut + "` points to a `" + baseTypeNameOut + "`-based `struct` value containing the `" + baseTypeNameOut + "` initialized by the specified `initNew" + baseTypeNameOut + "` and further populated by the `OnFoo" + baseTypeNameIn + "` handler corresponding to the concrete type of `in" + baseTypeNameIn + "` (if any). The only `err` returned, if any, is that returned by the specialized `OnFoo" + baseTypeNameIn + "` handler.")
-	buf.Writeln("func Handle" + baseTypeNameIn + "(in" + baseTypeNameIn + " interface{}, initNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ", *" + baseTypeNameOut + ")) (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", err error) {")
+	buf.Writeln("func Handle" + baseTypeNameIn + "(in" + baseTypeNameIn + " interface{}, initNew" + baseTypeNameOut + " func(*" + baseTypeNameIn + ", *" + baseTypeNameOut + ")) (out" + baseTypeNameOut + " interface{}, base" + baseTypeNameOut + " *" + baseTypeNameOut + ", handled bool, err error) {")
 	buf.Writeln("	switch input :" + "= in" + baseTypeNameIn + ".(type) {")
 	for tni, tno := range inouts {
 		_, isptr := ctorcandidates[tno]
@@ -130,7 +130,7 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn 
 			buf.Writeln("		o :" + "= &" + tno + "{}")
 		}
 		buf.Writeln("		if initNew" + baseTypeNameOut + "!=nil { initNew" + baseTypeNameOut + "(&input." + baseTypeNameIn + ", &o." + baseTypeNameOut + ")  ;  o.propagateFieldsToBase() }")
-		buf.Writeln("		if On" + tni + "!=nil { err = On" + tni + "(input, o)  ;  o.propagateFieldsToBase() }")
+		buf.Writeln("		if handled = On" + tni + "!=nil; handled { err = On" + tni + "(input, o)  ;  o.propagateFieldsToBase() }")
 		buf.Writeln("		out" + baseTypeNameOut + " , base" + baseTypeNameOut + " = o , &o." + baseTypeNameOut + "")
 	}
 	buf.Writeln("	}")
