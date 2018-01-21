@@ -5,14 +5,13 @@ import (
 
 	"github.com/go-leap/str"
 	"github.com/metaleap/go-util"
-	"github.com/metaleap/go-util/slice"
 )
 
-func (jsd *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
+func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
 	for _, btname := range baseTypeNames {
 		buf.Writeln("\nfunc Base" + btname + " (some" + btname + " interface{}) (base" + btname + " *" + btname + ") {")
 		buf.Writeln("	switch me :" + "= some" + btname + ".(type) {")
-		for tname, tdef := range jsd.Defs {
+		for tname, tdef := range me.Defs {
 			if tdef.base == btname {
 				buf.Writeln("	case *" + tname + ": base" + btname + " = &me." + btname)
 			}
@@ -22,17 +21,17 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctor
 		buf.Writeln("}")
 	}
 	for tname, pnames := range ctorcandidates {
-		if tdef := jsd.Defs[tname]; tdef != nil {
+		if tdef := me.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
-				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + strings.Join(uslice.StrMap(pnames, tdef.propNameToFieldName), "`, `") + "`")
+				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + strings.Join(ustr.Map(pnames, tdef.propNameToFieldName), "`, `") + "`")
 				buf.Writeln("func New" + tname + "() *" + tname + " {")
 				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
 				for _, pname := range pnames {
 					if pdef := tdef.Props[pname]; pdef != nil {
 						buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
 					} else {
-						for bdef := jsd.Defs[tdef.base]; bdef != nil; bdef = jsd.Defs[bdef.base] {
-							if pdef := bdef.Props[pname]; pdef != nil && len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
+						for bdef := me.Defs[tdef.base]; bdef != nil; bdef = me.Defs[bdef.base] {
+							if pdef = bdef.Props[pname]; pdef != nil && len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
 								buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
 							}
 						}
@@ -46,10 +45,10 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctor
 	}
 }
 
-func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string, byPropName string, all map[string]string) {
+func (me *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string, byPropName string, all map[string]string) {
 	tdefs := []*JsonDef{}
 	pmap := map[string]string{}
-	for tname, tdef := range jsd.Defs {
+	for tname, tdef := range me.Defs {
 		if tdef.base == forBaseTypeName {
 			tdefs = append(tdefs, tdef)
 			if pdef, ok := tdef.Props[byPropName]; ok && pdef != nil {

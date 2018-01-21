@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/go-leap/str"
-	"github.com/metaleap/go-util/slice"
 )
 
 //	Represents a top-level type definition, or a property definition, a type-reference, an embedded anonymous `struct`/`object` type definition, or an `array`/`map` element type definition..
@@ -49,7 +48,7 @@ func (me *JsonDef) genStructFields(ind int, b *ustr.Buf) {
 		pdef.updateDescBasedOnStrEnumVals()
 		writeDesc(ind, b, pdef.Desc)
 		omitempty := ",omitempty"
-		if uslice.StrHas(me.Req, pname) {
+		if ustr.In(pname, me.Req...) {
 			omitempty = ""
 		}
 		b.Writelnf("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, pname, omitempty)

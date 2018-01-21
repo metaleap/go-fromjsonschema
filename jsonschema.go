@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/go-leap/str"
-	"github.com/metaleap/go-util/slice"
 )
 
 //	Top-level declarations of a JSON Schema
@@ -89,10 +88,10 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 					buf.Writelnf("\t%s", tdef.base)
 				}
 				tdef.genStructFields(1, &buf)
-				if uslice.StrHas(generateCtorsForBaseTypes, tdef.base) {
+				if ustr.In(tdef.base, generateCtorsForBaseTypes...) {
 					for td := tdef; td != nil; td = jsd.Defs[td.base] {
 						for pname, pdef := range td.Props {
-							if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 && !uslice.StrHas(ctorcandidates[tname], pname) {
+							if len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 && !ustr.In(pname, ctorcandidates[tname]...) {
 								ctorcandidates[tname] = append(ctorcandidates[tname], pname)
 							}
 						}
@@ -101,10 +100,10 @@ func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTy
 				buf.Writelnf("\n} // struct %s\n", tname)
 				if generateDecodeHelpersForBaseTypeNames != nil || generateHandlinScaffoldsForBaseTypes != nil || len(generateCtorsForBaseTypes) > 0 {
 					buf.Writeln("func (me *" + tname + ") propagateFieldsToBase() {")
-					if bdef, ok := jsd.Defs[tdef.base]; ok && bdef != nil {
+					if bdef, okb := jsd.Defs[tdef.base]; okb && bdef != nil {
 						if bdef.Props != nil {
 							for pname := range tdef.Props {
-								if _, ok := bdef.Props[pname]; ok {
+								if _, okp := bdef.Props[pname]; okp {
 									buf.Writeln("	me." + tdef.base + "." + bdef.propNameToFieldName(pname) + " = me." + tdef.propNameToFieldName(pname))
 								}
 							}
