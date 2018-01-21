@@ -3,9 +3,9 @@ package fromjsd
 import (
 	"strings"
 
+	"github.com/go-leap/str"
 	"github.com/metaleap/go-util"
 	"github.com/metaleap/go-util/slice"
-	"github.com/metaleap/go/str"
 )
 
 func (jsd *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {

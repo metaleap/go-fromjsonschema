@@ -3,8 +3,8 @@ package fromjsd
 import (
 	"strings"
 
+	"github.com/go-leap/str"
 	"github.com/metaleap/go-util/slice"
-	"github.com/metaleap/go/str"
 )
 
 //	Represents a top-level type definition, or a property definition, a type-reference, an embedded anonymous `struct`/`object` type definition, or an `array`/`map` element type definition..

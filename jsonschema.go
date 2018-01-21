@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/go-leap/str"
 	"github.com/metaleap/go-util/slice"
-	"github.com/metaleap/go/str"
 )
 
 //	Top-level declarations of a JSON Schema

@@ -12,7 +12,7 @@ package fromjsd
 import (
 	"strings"
 
-	"github.com/metaleap/go/str"
+	"github.com/go-leap/str"
 )
 
 var (
