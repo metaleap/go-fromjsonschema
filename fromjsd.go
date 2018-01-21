@@ -10,8 +10,6 @@
 package fromjsd
 
 import (
-	"strings"
-
 	"github.com/go-leap/str"
 )
 
@@ -37,12 +35,12 @@ func unRef(r string) string {
 }
 
 func tabChars(n int) string {
-	return strings.Repeat("\t", n)
+	return ustr.Times("\t", n)
 }
 
 func writeDesc(ind int, b *ustr.Buf, desc string) {
 	tabchars := tabChars(ind)
-	if desclns := ustr.Split(strings.TrimSpace(desc), "\n"); len(desclns) > 0 {
+	if desclns := ustr.Split(ustr.Trim(desc), "\n"); len(desclns) > 0 {
 		for _, dln := range desclns {
 			b.Writelnf("%s// %s", tabchars, dln)
 		}

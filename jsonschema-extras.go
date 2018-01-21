@@ -1,10 +1,7 @@
 package fromjsd
 
 import (
-	"strings"
-
 	"github.com/go-leap/str"
-	"github.com/metaleap/go-util"
 )
 
 func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
@@ -23,7 +20,7 @@ func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorc
 	for tname, pnames := range ctorcandidates {
 		if tdef := me.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
-				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + strings.Join(ustr.Map(pnames, tdef.propNameToFieldName), "`, `") + "`")
+				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + ustr.Join(ustr.Map(pnames, tdef.propNameToFieldName), "`, `") + "`")
 				buf.Writeln("func New" + tname + "() *" + tname + " {")
 				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
 				for _, pname := range pnames {
@@ -53,12 +50,12 @@ func (me *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string
 			tdefs = append(tdefs, tdef)
 			if pdef, ok := tdef.Props[byPropName]; ok && pdef != nil {
 				if len(pdef.Type) != 1 {
-					panic(tname + "." + byPropName + " has types: " + umisc.Str(len(pdef.Type)))
+					panic(tname + "." + byPropName + " has types: " + ustr.Int(len(pdef.Type)))
 				} else if pdef.Type[0] != "string" {
 					panic(tname + "." + byPropName + " is " + pdef.Type[0])
 				} else if len(pdef.Enum) != 1 {
-					panic(tname + "." + byPropName + " has " + umisc.Str(len(pdef.Enum)))
-				} else if strings.Contains(pdef.Enum[0], "\"") {
+					panic(tname + "." + byPropName + " has " + ustr.Int(len(pdef.Enum)))
+				} else if ustr.Has(pdef.Enum[0], "\"") {
 					panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
 				} else if _, exists := pmap[pdef.Enum[0]]; exists {
 					panic(tname + "." + byPropName + " would overwrite existing: " + pdef.Enum[0])
@@ -86,7 +83,7 @@ func (me *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string
 	buf.Writeln(`	if len(js)==0 || js[0]!='{' || js[len(js)-1]!='}' { return }`)
 	//	it's only due to buggy syntax-highlighting that all generated := below are all split out into :` + `=
 	buf.Writeln(`	i1 :` + `= strings.Index(js, "\"` + byPropName + `\":\"")  ;  if i1<1 { return }`)
-	buf.Writeln(`	subjs :` + `= js[i1+4+` + umisc.Str(len(byPropName)) + `:]`)
+	buf.Writeln(`	subjs :` + `= js[i1+4+` + ustr.Int(len(byPropName)) + `:]`)
 	buf.Writeln(`	i2 :` + `= strings.Index(subjs, "\"")  ;  if i2<1 { return }`)
 	pvalvar := byPropName + `_of_` + forBaseTypeName
 	buf.Writeln(`	` + pvalvar + ` :` + `= subjs[:i2]  ;  switch ` + pvalvar + ` {`)
@@ -141,7 +138,7 @@ func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName str
 	for _, pname := range pnames {
 		for tname, tdef := range me.Defs {
 			if pdef := tdef.Props[pname]; pdef != nil && tdef.base == fromBaseTypeName {
-				tnalt := strings.TrimSuffix(tname, fromBaseTypeName) + toBaseTypeName
+				tnalt := ustr.TrimSuff(tname, fromBaseTypeName) + toBaseTypeName
 				if tdalt := me.Defs[tnalt]; tdalt != nil {
 					pcopy := *pdef
 					if tdalt.Props != nil {

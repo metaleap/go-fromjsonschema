@@ -1,8 +1,6 @@
 package fromjsd
 
 import (
-	"strings"
-
 	"github.com/go-leap/str"
 )
 
@@ -92,8 +90,7 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 }
 
 func (me *JsonDef) propNameToFieldName(pname string) (fname string) {
-	fname = strings.Title(pname)
-	if fname == me.base {
+	if fname = ustr.EnsureCase(pname, 0, true); fname == me.base {
 		fname += "_"
 	}
 	return
@@ -106,7 +103,7 @@ func (me *JsonDef) updateDescBasedOnStrEnumVals() {
 			en = me.Enum
 		}
 		if len(en) > 0 {
-			me.Desc += "\n\nPOSSIBLE VALUES: `" + strings.Join(en, "`, `") + "`"
+			me.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(en, "`, `") + "`"
 		}
 	}
 }

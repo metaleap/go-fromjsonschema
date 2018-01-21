@@ -2,7 +2,6 @@ package fromjsd
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/go-leap/str"
 )
@@ -26,8 +25,8 @@ type JsonSchema struct {
 //	Obtains from the given JSON Schema source a `*JsonSchema` that can be passed to `Generate`.
 //	`err` is `nil` unless unmarshaling the specified `jsonSchemaDefSrc` failed.
 func NewJsonSchema(jsonSchemaDefSrc string) (*JsonSchema, error) {
-	for i := strings.Index(jsonSchemaDefSrc, "\"type\": \""); i >= 0; i = strings.Index(jsonSchemaDefSrc, "\"type\": \"") {
-		j := strings.Index(jsonSchemaDefSrc[i+9:], "\"")
+	for i := ustr.Pos(jsonSchemaDefSrc, "\"type\": \""); i >= 0; i = ustr.Pos(jsonSchemaDefSrc, "\"type\": \"") {
+		j := ustr.Pos(jsonSchemaDefSrc[i+9:], "\"")
 		tname := jsonSchemaDefSrc[i+9:][:j]
 		jsonSchemaDefSrc = jsonSchemaDefSrc[:i] + "\"type\": [\"" + tname + "\"]" + jsonSchemaDefSrc[i+9+j+1:]
 	}
