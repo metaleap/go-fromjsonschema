@@ -5,10 +5,10 @@ import (
 
 	"github.com/metaleap/go-util"
 	"github.com/metaleap/go-util/slice"
-	"github.com/metaleap/go-util/str"
+	"github.com/metaleap/go/str"
 )
 
-func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, ctorcandidates map[string][]string) {
+func (jsd *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
 	for _, btname := range baseTypeNames {
 		buf.Writeln("\nfunc Base" + btname + " (some" + btname + " interface{}) (base" + btname + " *" + btname + ") {")
 		buf.Writeln("	switch me :" + "= some" + btname + ".(type) {")
@@ -24,7 +24,7 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, c
 	for tname, pnames := range ctorcandidates {
 		if tdef := jsd.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
-				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + ustr.Join(uslice.StrMap(pnames, tdef.propNameToFieldName), "`, `") + "`")
+				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + strings.Join(uslice.StrMap(pnames, tdef.propNameToFieldName), "`, `") + "`")
 				buf.Writeln("func New" + tname + "() *" + tname + " {")
 				buf.Writeln("	new" + tname + " :" + "= " + tname + "{}")
 				for _, pname := range pnames {
@@ -46,7 +46,7 @@ func (jsd *JsonSchema) generateCtors(buf *ustr.Buffer, baseTypeNames []string, c
 	}
 }
 
-func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName string, byPropName string, all map[string]string) {
+func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string, byPropName string, all map[string]string) {
 	tdefs := []*JsonDef{}
 	pmap := map[string]string{}
 	for tname, tdef := range jsd.Defs {
@@ -59,7 +59,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 					panic(tname + "." + byPropName + " is " + pdef.Type[0])
 				} else if len(pdef.Enum) != 1 {
 					panic(tname + "." + byPropName + " has " + umisc.Str(len(pdef.Enum)))
-				} else if ustr.Has(pdef.Enum[0], "\"") {
+				} else if strings.Contains(pdef.Enum[0], "\"") {
 					panic(tname + "." + byPropName + " has a quote-mark in: " + pdef.Enum[0])
 				} else if _, exists := pmap[pdef.Enum[0]]; exists {
 					panic(tname + "." + byPropName + " would overwrite existing: " + pdef.Enum[0])
@@ -71,7 +71,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	}
 	buf.Writeln("\n\n// TryUnmarshal" + forBaseTypeName + " attempts to unmarshal JSON string `js` (if it starts with a `{` and ends with a `}`) into a `struct` based on `" + forBaseTypeName + "` as follows:")
 	for pval, tname := range pmap {
-		buf.Write("// \n// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
+		buf.WriteString("// \n// If `js` contains `\"" + byPropName + "\":\"" + pval + "\"`, attempts to unmarshal ")
 		if _, ok := all[tname]; ok {
 			buf.Writeln("via `TryUnmarshal" + tname + "`")
 		} else {
@@ -104,7 +104,7 @@ func (jsd *JsonSchema) generateDecodeHelper(buf *ustr.Buffer, forBaseTypeName st
 	buf.Writeln(`}`)
 }
 
-func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buffer, baseTypeNameIn string, baseTypeNameOut string, ctorcandidates map[string][]string) {
+func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buf, baseTypeNameIn string, baseTypeNameOut string, ctorcandidates map[string][]string) {
 	inouts := map[string]string{}
 	for tnameout, tdefout := range me.Defs {
 		if tdefout.base == baseTypeNameOut {

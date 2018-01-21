@@ -1,8 +1,6 @@
 # fromjsd
-
-```go
+--
     import "github.com/metaleap/go-fromjsonschema"
-```
 
 Generates Go `struct` (et al) type definitions (ready to `json.Unmarshal` into)
 from a JSON Schema definition.
@@ -11,9 +9,15 @@ Caution: contains a few strategically placed `panic`s for edge cases
 not-yet-considered/implemented/handled/needed. If it `panic`s for your JSON
 Schema, report!
 
-* Use it like [this main.go](https://github.com/metaleap/zentient/blob/master/zdbg-vsc-proto-gen/main.go) does..
-* ..to turn a JSON Schema [like this](https://github.com/Microsoft/vscode-debugadapter-node/blob/master/debugProtocol.json)..
-* ..into a monster `.go` package of `struct` (et al) type-defs [like this](https://github.com/metaleap/zentient/blob/master/zdbg-vsc/proto/proto.go)
+- Use it like [this
+main.go](https://github.com/metaleap/zentient/blob/master/cmd/zentient-dbg-vsc-genprotocol/main.go)
+does..
+
+- ..to turn a JSON Schema [like
+this](https://github.com/Microsoft/vscode-debugadapter-node/blob/master/debugProtocol.json)..
+
+- ..into a monster `.go` package of `struct` (et al) type-defs [like
+this](https://github.com/metaleap/zentient/blob/master/dbg/vsc/protocol/protocol.go)
 
 ## Usage
 
@@ -92,10 +96,16 @@ Obtains from the given JSON Schema source a `*JsonSchema` that can be passed to
 `Generate`. `err` is `nil` unless unmarshaling the specified `jsonSchemaDefSrc`
 failed.
 
+#### func (*JsonSchema) ForceCopyProps
+
+```go
+func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string)
+```
+
 #### func (*JsonSchema) Generate
 
 ```go
-func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string) string
+func (jsd *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string, generateCtorsForBaseTypes ...string) string
 ```
 Generate a Go package source with type-defs representing the `Defs` in `jsd`
 (typically obtained via `NewJsonSchema`).

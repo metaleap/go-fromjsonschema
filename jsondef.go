@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/metaleap/go-util/slice"
-	"github.com/metaleap/go-util/str"
+	"github.com/metaleap/go/str"
 )
 
 //	Represents a top-level type definition, or a property definition, a type-reference, an embedded anonymous `struct`/`object` type definition, or an `array`/`map` element type definition..
@@ -37,7 +37,7 @@ func (me *JsonDef) EnsureProps(propNamesAndTypes map[string]string) {
 	}
 }
 
-func (me *JsonDef) genStructFields(ind int, b *ustr.Buffer) {
+func (me *JsonDef) genStructFields(ind int, b *ustr.Buf) {
 	tabchars := tabChars(ind)
 	for pname, pdef := range me.Props {
 		if len(pdef.AllOf) > 0 {
@@ -52,7 +52,7 @@ func (me *JsonDef) genStructFields(ind int, b *ustr.Buffer) {
 		if uslice.StrHas(me.Req, pname) {
 			omitempty = ""
 		}
-		b.Writeln("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, pname, omitempty)
+		b.Writelnf("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, pname, omitempty)
 	}
 }
 
@@ -70,7 +70,7 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 			switch me.Type[0] {
 			case "object":
 				if me.Props != nil && len(me.Props) > 0 {
-					var b ustr.Buffer
+					var b ustr.Buf
 					me.genStructFields(ind+1, &b)
 					ftname = "struct {\n" + b.String() + "\n" + tabChars(ind) + "}"
 				} else if me.TMap != nil {
@@ -107,7 +107,7 @@ func (me *JsonDef) updateDescBasedOnStrEnumVals() {
 			en = me.Enum
 		}
 		if len(en) > 0 {
-			me.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(en, "`, `") + "`"
+			me.Desc += "\n\nPOSSIBLE VALUES: `" + strings.Join(en, "`, `") + "`"
 		}
 	}
 }
