@@ -90,7 +90,7 @@ func (me *JsonDef) genTypeName(ind int) (ftname string) {
 }
 
 func (me *JsonDef) propNameToFieldName(pname string) (fname string) {
-	if fname = ustr.EnsureCase(pname, 0, true); fname == me.base {
+	if fname = ustr.Case(pname, 0, true); fname == me.base {
 		fname += "_"
 	}
 	return
