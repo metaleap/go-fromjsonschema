@@ -4,13 +4,13 @@ import (
 	"github.com/go-leap/str"
 )
 
-func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
+func (this *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorcandidates map[string][]string) {
 	for _, btname := range baseTypeNames {
 		buf.Writeln("\nfunc Base" + btname + " (some" + btname + " interface{}) (base" + btname + " *" + btname + ") {")
-		buf.Writeln("	switch me :" + "= some" + btname + ".(type) {")
-		for tname, tdef := range me.Defs {
+		buf.Writeln("	switch this :" + "= some" + btname + ".(type) {")
+		for tname, tdef := range this.Defs {
 			if tdef.base == btname {
-				buf.Writeln("	case *" + tname + ": base" + btname + " = &me." + btname)
+				buf.Writeln("	case *" + tname + ": base" + btname + " = &this." + btname)
 			}
 		}
 		buf.Writeln("	}")
@@ -18,7 +18,7 @@ func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorc
 		buf.Writeln("}")
 	}
 	for tname, pnames := range ctorcandidates {
-		if tdef := me.Defs[tname]; tdef != nil {
+		if tdef := this.Defs[tname]; tdef != nil {
 			if len(pnames) > 0 {
 				buf.Writeln("\n// Returns a new `" + tname + "` with the following fields set: `" + ustr.Join(ustr.Map(pnames, tdef.propNameToFieldName), "`, `") + "`")
 				buf.Writeln("func New" + tname + "() *" + tname + " {")
@@ -27,7 +27,7 @@ func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorc
 					if pdef := tdef.Props[pname]; pdef != nil {
 						buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
 					} else {
-						for bdef := me.Defs[tdef.base]; bdef != nil; bdef = me.Defs[bdef.base] {
+						for bdef := this.Defs[tdef.base]; bdef != nil; bdef = this.Defs[bdef.base] {
 							if pdef = bdef.Props[pname]; pdef != nil && len(pdef.Type) == 1 && pdef.Type[0] == "string" && len(pdef.Enum) == 1 {
 								buf.Writeln("	new" + tname + "." + tdef.propNameToFieldName(pname) + " = \"" + pdef.Enum[0] + "\"")
 							}
@@ -42,10 +42,10 @@ func (me *JsonSchema) generateCtors(buf *ustr.Buf, baseTypeNames []string, ctorc
 	}
 }
 
-func (me *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string, byPropName string, all map[string]string) {
+func (this *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string, byPropName string, all map[string]string) {
 	tdefs := []*JsonDef{}
 	pmap := map[string]string{}
-	for tname, tdef := range me.Defs {
+	for tname, tdef := range this.Defs {
 		if tdef.base == forBaseTypeName {
 			tdefs = append(tdefs, tdef)
 			if pdef, ok := tdef.Props[byPropName]; ok && pdef != nil {
@@ -100,12 +100,12 @@ func (me *JsonSchema) generateDecodeHelper(buf *ustr.Buf, forBaseTypeName string
 	buf.Writeln(`}`)
 }
 
-func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buf, baseTypeNameIn string, baseTypeNameOut string, ctorcandidates map[string][]string) {
+func (this *JsonSchema) generateHandlingScaffold(buf *ustr.Buf, baseTypeNameIn string, baseTypeNameOut string, ctorcandidates map[string][]string) {
 	inouts := map[string]string{}
-	for tnameout, tdefout := range me.Defs {
+	for tnameout, tdefout := range this.Defs {
 		if tdefout.base == baseTypeNameOut {
 			tnamein := tnameout[0:len(tnameout)-len(baseTypeNameOut)] + baseTypeNameIn
-			if _, ok := me.Defs[tnamein]; ok {
+			if _, ok := this.Defs[tnamein]; ok {
 				inouts[tnamein] = tnameout
 			}
 		}
@@ -134,12 +134,12 @@ func (me *JsonSchema) generateHandlingScaffold(buf *ustr.Buf, baseTypeNameIn str
 	buf.Writeln("}")
 }
 
-func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string) {
+func (this *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string) {
 	for _, pname := range pnames {
-		for tname, tdef := range me.Defs {
+		for tname, tdef := range this.Defs {
 			if pdef := tdef.Props[pname]; pdef != nil && tdef.base == fromBaseTypeName {
 				tnalt := ustr.TrimSuff(tname, fromBaseTypeName) + toBaseTypeName
-				if tdalt := me.Defs[tnalt]; tdalt != nil {
+				if tdalt := this.Defs[tnalt]; tdalt != nil {
 					pcopy := *pdef
 					if tdalt.Props != nil {
 						tdalt.Props[pname] = &pcopy
