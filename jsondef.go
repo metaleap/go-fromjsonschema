@@ -19,69 +19,69 @@ type JsonDef struct {
 	Ref   string              `json:"$ref,omitempty"`                 // pd or base from allof[0]
 }
 
-func (this *JsonDef) EnsureProps(propNamesAndTypes map[string]string) {
-	if this.Props == nil {
-		// this.Props = map[string]*JsonDef{}
+func (me *JsonDef) EnsureProps(propNamesAndTypes map[string]string) {
+	if me.Props == nil {
+		// me.Props = map[string]*JsonDef{}
 		panic("EnsureProps: Props was nil and so this likely isn't supposed to have any")
 	}
 	for pname, ptype := range propNamesAndTypes {
-		if pdef, ok := this.Props[pname]; pdef == nil || !ok {
+		if pdef, ok := me.Props[pname]; pdef == nil || !ok {
 			pdef = &JsonDef{Type: []string{ptype}, Desc: pname}
-			this.Props[pname] = pdef
+			me.Props[pname] = pdef
 		} else {
 			panic("EnsureProps: property `" + pname + "` exists in the original schema now, remove it from this call.")
 		}
 	}
 }
 
-func (this *JsonDef) genStructFields(ind int, b *ustr.Buf) {
+func (me *JsonDef) genStructFields(ind int, b *ustr.Buf) {
 	tabchars := tabChars(ind)
-	for pname, pdef := range this.Props {
+	for pname, pdef := range me.Props {
 		if len(pdef.AllOf) > 0 {
 			panic(pname)
 		}
 		ftname := pdef.genTypeName(ind)
-		gtname := this.propNameToFieldName(pname)
+		gtname := me.propNameToFieldName(pname)
 		b.Writeln("")
 		pdef.updateDescBasedOnStrEnumVals()
 		writeDesc(ind, b, pdef.Desc)
 		omitempty := ",omitempty"
-		if ustr.In(pname, this.Req...) {
+		if ustr.In(pname, me.Req...) {
 			omitempty = ""
 		}
 		b.Writelnf("%s%s %s `json:\"%s%s\"`", tabchars, gtname, ftname, pname, omitempty)
 	}
 }
 
-func (this *JsonDef) genTypeName(ind int) (ftname string) {
+func (me *JsonDef) genTypeName(ind int) (ftname string) {
 	ftname = "interface{}"
-	if this != nil {
-		if len(this.Ref) > 0 {
-			ftname = unRef(this.Ref)
-		} else if len(this.Type) > 1 {
-			this.Desc += "\n\nPOSSIBLE TYPES:"
-			for _, jtn := range this.Type {
-				this.Desc += "\n- `" + TypeMapping[jtn] + "` (for JSON `" + jtn + "`s)"
+	if me != nil {
+		if len(me.Ref) > 0 {
+			ftname = unRef(me.Ref)
+		} else if len(me.Type) > 1 {
+			me.Desc += "\n\nPOSSIBLE TYPES:"
+			for _, jtn := range me.Type {
+				me.Desc += "\n- `" + TypeMapping[jtn] + "` (for JSON `" + jtn + "`s)"
 			}
-		} else if len(this.Type) > 0 {
-			switch this.Type[0] {
+		} else if len(me.Type) > 0 {
+			switch me.Type[0] {
 			case "object":
-				if this.Props != nil && len(this.Props) > 0 {
+				if me.Props != nil && len(me.Props) > 0 {
 					var b ustr.Buf
-					this.genStructFields(ind+1, &b)
+					me.genStructFields(ind+1, &b)
 					ftname = "struct {\n" + b.String() + "\n" + tabChars(ind) + "}"
-				} else if this.TMap != nil {
-					ftname = "map[string]" + this.TMap.genTypeName(ind)
+				} else if me.TMap != nil {
+					ftname = "map[string]" + me.TMap.genTypeName(ind)
 				} else {
 					ftname = TypeMapping["object"]
 				}
 			case "array":
-				ftname = "[]" + this.TArr.genTypeName(ind)
+				ftname = "[]" + me.TArr.genTypeName(ind)
 			default:
-				if tn, ok := TypeMapping[this.Type[0]]; ok {
+				if tn, ok := TypeMapping[me.Type[0]]; ok {
 					ftname = tn
 				} else {
-					panic(this.Type[0])
+					panic(me.Type[0])
 				}
 			}
 		}
@@ -89,24 +89,24 @@ func (this *JsonDef) genTypeName(ind int) (ftname string) {
 	return
 }
 
-func (this *JsonDef) propNameToFieldName(pname string) (fname string) {
+func (me *JsonDef) propNameToFieldName(pname string) (fname string) {
 	for ustr.Pref(pname, "_") {
 		pname = pname[1:] + "_"
 	}
-	if fname = ustr.Case(pname, 0, true); fname == this.base {
+	if fname = ustr.Case(pname, 0, true); fname == me.base {
 		fname += "_"
 	}
 	return
 }
 
-func (this *JsonDef) updateDescBasedOnStrEnumVals() {
-	if len(this.Type) > 0 && this.Type[0] == "string" {
-		en := this.Enum_
+func (me *JsonDef) updateDescBasedOnStrEnumVals() {
+	if len(me.Type) > 0 && me.Type[0] == "string" {
+		en := me.Enum_
 		if len(en) == 0 {
-			en = this.Enum
+			en = me.Enum
 		}
 		if len(en) > 0 {
-			this.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(en, "`, `") + "`"
+			me.Desc += "\n\nPOSSIBLE VALUES: `" + ustr.Join(en, "`, `") + "`"
 		}
 	}
 }

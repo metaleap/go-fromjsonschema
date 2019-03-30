@@ -63,7 +63,7 @@ type-reference, an embedded anonymous `struct`/`object` type definition, or an
 #### func (*JsonDef) EnsureProps
 
 ```go
-func (this *JsonDef) EnsureProps(propNamesAndTypes map[string]string)
+func (me *JsonDef) EnsureProps(propNamesAndTypes map[string]string)
 ```
 
 #### type JsonSchema
@@ -99,13 +99,13 @@ failed.
 #### func (*JsonSchema) ForceCopyProps
 
 ```go
-func (this *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string)
+func (me *JsonSchema) ForceCopyProps(fromBaseTypeName string, toBaseTypeName string, pnames ...string)
 ```
 
 #### func (*JsonSchema) Generate
 
 ```go
-func (this *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string, generateCtorsForBaseTypes ...string) string
+func (me *JsonSchema) Generate(goPkgName string, generateDecodeHelpersForBaseTypeNames map[string]string, generateHandlinScaffoldsForBaseTypes map[string]string, generateCtorsForBaseTypes ...string) string
 ```
 Generate a Go package source with type-defs representing the `Defs` in `jsd`
 (typically obtained via `NewJsonSchema`).
