@@ -4,7 +4,9 @@ import (
 	"github.com/go-leap/str"
 )
 
-//	Represents a top-level type definition, or a property definition, a type-reference, an embedded anonymous `struct`/`object` type definition, or an `array`/`map` element type definition..
+//	Represents a top-level type definition, or a property definition,
+// a type-reference, an embedded anonymous `struct`/`object` type
+// definition, or an `array`/`map` element type definition..
 type JsonDef struct {
 	base  string
 	Desc  string              `json:"description,omitempty"`          // top-level defs

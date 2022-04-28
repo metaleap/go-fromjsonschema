@@ -56,8 +56,9 @@ type JsonDef struct {
 }
 ```
 
-Represents a top-level type definition, or a property definition, a
-type-reference, an embedded anonymous `struct`/`object` type definition, or an
+
+    Represents a top-level type definition, or a property definition,
+a type-reference, an embedded anonymous `struct`/`object` type definition, or an
 `array`/`map` element type definition..
 
 #### func (*JsonDef) EnsureProps
